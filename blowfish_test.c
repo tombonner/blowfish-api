@@ -600,7 +600,7 @@ static BLOWFISH_RC _BLOWFISH_Test_Throughput ( BLOWFISH_MODE Mode, BLOWFISH_ULON
 						{
 							/* While the total elapsed time (in seconds) has not passed the duration threshold, keep enciphering/deciphering the stream */ 
 
-							for ( i = 0; ( ElapsedEncipherTime + ElapsedDecipherTime ) / CLOCKS_PER_SEC <= _BLOWFISH_THROUGHPUT_DURATION; i++ )
+							for ( i = 0; ( ( ElapsedEncipherTime + ElapsedDecipherTime ) / omp_get_max_threads ( ) ) / CLOCKS_PER_SEC <= _BLOWFISH_THROUGHPUT_DURATION; i++ )
 							{
 								/* Clear the ciphertext buffer */ 
 
@@ -671,6 +671,11 @@ static BLOWFISH_RC _BLOWFISH_Test_Throughput ( BLOWFISH_MODE Mode, BLOWFISH_ULON
 
 								if ( ( i * StreamBlockSize ) > ( 1024 * 1024 ) )
 								{
+									/* Adjust elapsed time based on thread count */
+
+									ElapsedEncipherTime = ElapsedEncipherTime / omp_get_max_threads ( );
+									ElapsedDecipherTime = ElapsedDecipherTime / omp_get_max_threads ( );
+
 									/* Convert elapsed time from milliseconds to seconds (minimum 1 second) */ 
 
 									ElapsedEncipherTime = ElapsedEncipherTime / CLOCKS_PER_SEC > 1 ? ElapsedEncipherTime / CLOCKS_PER_SEC : 1;
@@ -683,7 +688,7 @@ static BLOWFISH_RC _BLOWFISH_Test_Throughput ( BLOWFISH_MODE Mode, BLOWFISH_ULON
 									printf ( "Stream length=%0.2f MB (%d*%d byte blocks)\n", BlocksProcessed, (int)i, (int)StreamBlockSize );
 
 									/* Calculate and display throughputs */ 
-
+									printf ( "Elapsed time %d\n", (int)(ElapsedEncipherTime + ElapsedDecipherTime) );
 									printf ( "Encipher throughput=%0.2f MB/s\n", BlocksProcessed / ElapsedEncipherTime );
 									printf ( "Decipher throughput=%0.2f MB/s\n", BlocksProcessed / ElapsedDecipherTime );
 									printf ( "Average throughput=%0.2f MB/s\n", ( ( BlocksProcessed / ElapsedDecipherTime ) + ( BlocksProcessed / ElapsedEncipherTime ) ) / 2 );
@@ -792,7 +797,7 @@ static BLOWFISH_RC _BLOWFISH_SelfTest ( )
 
 	if ( omp_get_max_threads ( ) > 1 )
 	{
-		printf ( "Parallelised throughput tests (using %d threads for %d seconds per mode)...\n\n", omp_get_max_threads ( ), _BLOWFISH_THROUGHPUT_DURATION );
+		printf ( "Parallelised throughput tests (using %d threads for ~%d seconds per mode)...\n\n", omp_get_max_threads ( ), _BLOWFISH_THROUGHPUT_DURATION );
 
 		for ( i = 0; i < sizeof ( _BLOWFISH_ThroughputTv ) / sizeof ( _BLOWFISH_ThroughputTv [ 0 ] ); i++ )
 		{
@@ -816,7 +821,7 @@ static BLOWFISH_RC _BLOWFISH_SelfTest ( )
 
 	/* Perform serialised throughput tests */ 
 
-	printf ( "Serialised throughput tests (using 1 thread for %d seconds per mode)...\n\n", _BLOWFISH_THROUGHPUT_DURATION );
+	printf ( "Serialised throughput tests (using 1 thread for ~%d seconds per mode)...\n\n", _BLOWFISH_THROUGHPUT_DURATION );
 
 	for ( i = 0; i < sizeof ( _BLOWFISH_ThroughputTv ) / sizeof ( _BLOWFISH_ThroughputTv [ 0 ] ); i++ )
 	{
