@@ -540,6 +540,11 @@ static BLOWFISH_RC _BLOWFISH_Test_Throughput ( BLOWFISH_MODE Mode, BLOWFISH_ULON
 	clock_t				ElapsedEncipherTime = 0;
 	clock_t				ElapsedDecipherTime = 0;
 	float				BlocksProcessed = 0;
+#ifdef _OPENMP
+	BLOWFISH_SIZE_T		Threads = omp_get_max_threads ( );
+#else
+	BLOWFISH_SIZE_T		Threads = 1;
+#endif
 
 	/* Initialise blowfish for the encipher stream */ 
 
@@ -600,7 +605,7 @@ static BLOWFISH_RC _BLOWFISH_Test_Throughput ( BLOWFISH_MODE Mode, BLOWFISH_ULON
 						{
 							/* While the total elapsed time (in seconds) has not passed the duration threshold, keep enciphering/deciphering the stream */ 
 
-							for ( i = 0; ( ( ElapsedEncipherTime + ElapsedDecipherTime ) / omp_get_max_threads ( ) ) / CLOCKS_PER_SEC <= _BLOWFISH_THROUGHPUT_DURATION; i++ )
+							for ( i = 0; ( ( ElapsedEncipherTime + ElapsedDecipherTime ) / Threads ) / CLOCKS_PER_SEC <= _BLOWFISH_THROUGHPUT_DURATION; i++ )
 							{
 								/* Clear the ciphertext buffer */ 
 
@@ -673,8 +678,8 @@ static BLOWFISH_RC _BLOWFISH_Test_Throughput ( BLOWFISH_MODE Mode, BLOWFISH_ULON
 								{
 									/* Adjust elapsed time based on thread count */
 
-									ElapsedEncipherTime = ElapsedEncipherTime / omp_get_max_threads ( );
-									ElapsedDecipherTime = ElapsedDecipherTime / omp_get_max_threads ( );
+									ElapsedEncipherTime = ElapsedEncipherTime / Threads;
+									ElapsedDecipherTime = ElapsedDecipherTime / Threads;
 
 									/* Convert elapsed time from milliseconds to seconds (minimum 1 second) */ 
 
@@ -688,7 +693,7 @@ static BLOWFISH_RC _BLOWFISH_Test_Throughput ( BLOWFISH_MODE Mode, BLOWFISH_ULON
 									printf ( "Stream length=%0.2f MB (%d*%d byte blocks)\n", BlocksProcessed, (int)i, (int)StreamBlockSize );
 
 									/* Calculate and display throughputs */ 
-									printf ( "Elapsed time %d\n", (int)(ElapsedEncipherTime + ElapsedDecipherTime) );
+
 									printf ( "Encipher throughput=%0.2f MB/s\n", BlocksProcessed / ElapsedEncipherTime );
 									printf ( "Decipher throughput=%0.2f MB/s\n", BlocksProcessed / ElapsedDecipherTime );
 									printf ( "Average throughput=%0.2f MB/s\n", ( ( BlocksProcessed / ElapsedDecipherTime ) + ( BlocksProcessed / ElapsedEncipherTime ) ) / 2 );
